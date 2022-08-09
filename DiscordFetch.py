@@ -1,30 +1,33 @@
 import rpc
 import distro
-import time
-import subprocess
+from time import sleep
+import requests
+import json
 import os
 
-dobj = distro.linux_distribution(full_distribution_name=True)
+## Application ID to use ##
+application_id = '1006437180383690813'
 
-def getLImage(id,dname):
-	if id in ["archlinuxlogo","manjarolinuxlogo"]:
-		return id
-	else:
-		print(f"Couldn't find a logo for {dname}, tell me what distro you are using and i will add it!")
-		print("My Discord: Totally Discord#8671")
-		print()
-		return "questionmark"
+## dumb way to make logo change if added while DiscordFetch is running without spamming terminal ##
+no_logo_warning = False
 
-dname = dobj[0]
-dlogoid = ''.join(dname.split()).lower() + "logo"
+## FUNCTION: Gets a logo ID to use ##
+def getLogoID():
+	logos = json.loads(requests.get(f"https://discord.com/api/v9/oauth2/applications/{application_id}/assets").content)
+	logo_id = next((item["name"] for item in logos if item["name"] == distro.id()), "tux")
+	if logo_id == "tux" and not no_logo_warning:
+		print(f"oops! we don't have a logo for id `{distro.id()}`")
+		print("create an issue on github and give us that id so we can add it!")
+		no_logo_warning = True
+	return logo_id
+
+## Get the uptime ##
 uptime = float(os.popen("cat /proc/stat | grep btime | awk '{print $2}'").read())
 
-limage = getLImage(dlogoid,dname)
+## Get RPC object ##
+rpc_obj = rpc.DiscordIpcClient.for_platform(application_id)
 
-client_id = '740300573303242813'
-rpc_obj = rpc.DiscordIpcClient.for_platform(client_id)
-print("RPC connection successful.")
-
+## MAIN LOOP: Sets the RPC activity every 30 seconds. ##
 while True:
 	activity = {
 		"details": f"Kernel: {os.popen('uname -r').read()}",
@@ -32,9 +35,9 @@ while True:
 			"start": uptime
 		},
 		"assets": {
-			"large_image": limage,
-			"large_text": dname
+			"large_image": getLogoID(),
+			"large_text": distro.name()
 		}
 	}
 	rpc_obj.set_activity(activity)
-	time.sleep(30)
+	sleep(30)
