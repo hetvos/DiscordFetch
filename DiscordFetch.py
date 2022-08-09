@@ -13,6 +13,7 @@ no_logo_warning = False
 
 ## FUNCTION: Gets a logo ID to use ##
 def getLogoID():
+	global no_logo_warning
 	logos = json.loads(requests.get(f"https://discord.com/api/v9/oauth2/applications/{application_id}/assets").content)
 	logo_id = next((item["name"] for item in logos if item["name"] == distro.id()), "tux")
 	if logo_id == "tux" and not no_logo_warning:
